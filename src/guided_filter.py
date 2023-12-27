@@ -25,29 +25,6 @@ def average_filter(u, r):
     return out
 
 
-def guided_filter(u, guide, r, eps):
-    # Credit for these functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès
-    """Guided filtering on image u using guide, filter radius is r and regularization parameter eps
-    Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
-    """
-    C = average_filter(np.ones(u.shape), r)  # to avoid image edges pb
-    mean_u = average_filter(u, r) / C
-    mean_guide = average_filter(guide, r) / C
-    corr_guide = average_filter(guide * guide, r) / C
-    corr_uguide = average_filter(u * guide, r) / C
-    var_guide = corr_guide - mean_guide * mean_guide
-    cov_uguide = corr_uguide - mean_u * mean_guide
-
-    alph = cov_uguide / (var_guide + eps)
-    beta = mean_u - alph * mean_guide
-
-    mean_alph = average_filter(alph, r) / C
-    mean_beta = average_filter(beta, r) / C
-
-    q = mean_alph * guide + mean_beta
-    return q
-
-
 def average_filter_multichannel(u, r):
     """Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
     Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
@@ -71,45 +48,30 @@ def average_filter_multichannel(u, r):
     return out
 
 
-def guided_filter_with_colored_guide_v1(u, guide, r, eps):
-    """u is one channel of the image to be filtered."""
+def guided_filter(u, guide, r, eps):
+    # Credit for these functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès
+    """Guided filtering on image u using guide, filter radius is r and regularization parameter eps
+    Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
+    """
     C = average_filter(np.ones(u.shape), r)  # to avoid image edges pb
-    mean_u = average_filter(u, r) / C  # shape (w,h)
-    mean_guide = np.zeros_like(guide)
-    for i in range(guide.shape[2]):
-        mean_guide[:, :, i] = average_filter(guide[:, :, i], r) / C
+    mean_u = average_filter(u, r) / C
+    mean_guide = average_filter(guide, r) / C
+    corr_guide = average_filter(guide * guide, r) / C
+    corr_uguide = average_filter(u * guide, r) / C
+    var_guide = corr_guide - mean_guide * mean_guide
+    cov_uguide = corr_uguide - mean_u * mean_guide
 
-    corr_uguide = np.zeros_like(guide)
-    for i in range(guide.shape[2]):
-        corr_uguide[:, :, i] = average_filter(guide[:, :, i] * u, r) / C
+    alph = cov_uguide / (var_guide + eps)
+    beta = mean_u - alph * mean_guide
 
-    cov_uguide = corr_uguide - mean_guide * mean_u[:, :, None]  # shape (w,h,3)
+    mean_alph = average_filter(alph, r) / C
+    mean_beta = average_filter(beta, r) / C
 
-    corr_guide = (guide[:, :, :, None] - mean_guide[:, :, :, None]) * (
-        guide[:, :, None, :] - mean_guide[:, :, None, :]
-    )  # shape (w,h,3,3)
-    cov_guide = np.zeros_like(corr_guide)
-    for i in range(guide.shape[2]):
-        for j in range(guide.shape[2]):
-            cov_guide[:, :, i, j] = average_filter(corr_guide[:, :, i, j], r) / C
-    matU = eps * np.eye(3)
-
-    # temp_alpha = cov_guide + matU[None,None,:,:]
-    temp_alpha = np.linalg.inv(cov_guide + matU[None, None, :, :])
-    alpha = np.einsum("whij,whj-> whi", temp_alpha, cov_uguide)  # shape (w,h,3)
-
-    beta = mean_u - np.einsum("whi,whi->wh", alpha, mean_guide)  # shape (w,h)
-
-    average_alpha = np.zeros_like(alpha)
-    for i in range(alpha.shape[2]):
-        average_alpha[:, :, i] = average_filter(alpha[:, :, i], r) / C
-    average_beta = average_filter(beta, r)
-
-    q = np.einsum("whi, whi -> wh", average_alpha, guide) + average_beta
+    q = mean_alph * guide + mean_beta
     return q
 
 
-def guided_filter_with_colored_guide_v2(u, guide, r, eps):
+def guided_filter_with_colored_guide(u, guide, r, eps):
     C = average_filter(np.ones(u.shape), r)  # to avoid image edges pb
     mean_u = average_filter(u, r) / C  # (W, H)
     mean_guide = average_filter_multichannel(guide, r) / C[:, :, None]  # (W, H, 3)
@@ -142,6 +104,55 @@ def guided_filter_with_colored_guide_v2(u, guide, r, eps):
     mean_beta = average_filter(beta, r) / C[:, :]
 
     return np.sum(mean_alpha * guide, axis=-1) + mean_beta
+
+
+def guided_filter_with_colored_guide_slow(u, guide, r, eps):
+    (width, height) = u.shape[:2]
+    alpha = np.zeros((width, height, 3))
+    beta = np.zeros((width, height))
+    for i in range(width):
+        for j in range(height):
+            mean_guide = np.zeros(3)
+            mean_u = 0
+            corr_uguide = np.zeros(3)
+            corr_guide = np.zeros((3, 3))
+            area = 0
+            for k in range(-r, r + 1):
+                for l in range(-r, r + 1):
+                    if i + k >= 0 and i + k < width and j + l >= 0 and j + l < height:
+                        mean_guide += guide[i + k, j + l]
+                        mean_u += u[i + k, j + l]
+                        corr_uguide += guide[i + k, j + l] * u[i + k, j + l]
+                        corr_guide += np.outer(guide[i + k, j + l], guide[i + k, j + l])
+                        area += 1
+            mean_guide /= area
+            mean_u /= area
+            corr_uguide /= area
+            corr_guide /= area
+            cov_uguide = corr_uguide - mean_guide * mean_u
+            cov_guide = corr_guide - np.outer(mean_guide, mean_guide)
+            matU = eps * np.eye(3)
+            temp_alpha = np.linalg.inv(cov_guide + matU)
+            alpha[i, j] = np.dot(temp_alpha, cov_uguide)
+            beta[i, j] = mean_u - np.dot(alpha[i, j], mean_guide)
+    alpha_mean = np.zeros((width, height, 3))
+    beta_mean = np.zeros((width, height))
+    for i in range(width):
+        for j in range(height):
+            area = 0
+            for k in range(-r, r + 1):
+                for l in range(-r, r + 1):
+                    if i + k >= 0 and i + k < width and j + l >= 0 and j + l < height:
+                        alpha_mean[i, j] += alpha[i + k, j + l]
+                        beta_mean[i, j] += beta[i + k, j + l]
+                        area += 1
+            alpha_mean[i, j] /= area
+            beta_mean[i, j] /= area
+    q = np.zeros((width, height))
+    for i in range(width):
+        for j in range(height):
+            q[i, j] = np.dot(alpha_mean[i, j], guide[i, j]) + beta_mean[i, j]
+    return q
 
 
 if __name__ == "__main__":
