@@ -3,12 +3,17 @@ import numpy as np
 
 # Numpy implementation
 def average_filter(u, r):
-    """Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
-    Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
-        :param u: 2D image to be filtered.
-        :param r: Radius of the filter.
     """
+    Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
+    Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
 
+    Parameters:
+        :u (numpy.ndarray): The input image.
+        :r (int): The filter radius.
+
+    Returns:
+        numpy.ndarray: The filtered image.
+    """
     (nrow, ncol) = u.shape
     big_uint = np.zeros((nrow + 2 * r + 1, ncol + 2 * r + 1))
     big_uint[r + 1 : nrow + r + 1, r + 1 : ncol + r + 1] = u
@@ -26,12 +31,17 @@ def average_filter(u, r):
 
 
 def average_filter_multichannel(u, r):
-    """Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
-    Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
-        :param u: Colored 2D image to be filtered.
-        :param r: Radius of the filter.
     """
+    Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
+    Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
 
+    Parameters:
+        :u (numpy.ndarray): The input image.
+        :r (int): The filter radius.
+
+    Returns:
+        numpy.ndarray: The filtered image.
+    """
     (nrow, ncol) = u.shape[:2]
     big_uint = np.zeros((nrow + 2 * r + 1, ncol + 2 * r + 1, 3))
     big_uint[r + 1 : nrow + r + 1, r + 1 : ncol + r + 1, :] = u
@@ -49,9 +59,18 @@ def average_filter_multichannel(u, r):
 
 
 def guided_filter(u, guide, r, eps):
-    # Credit for these functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès
-    """Guided filtering on image u using guide, filter radius is r and regularization parameter eps
+    """
+    Guided filtering on image u using guide, filter radius is r and regularization parameter eps.
     Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
+
+    Parameters:
+        :u (numpy.ndarray): One color channel for the input image.
+        :guide (numpy.ndarray): The guide image.
+        :r (int): The filter radius.
+        :eps (float): The regularization parameter.
+
+    Returns:
+        numpy.ndarray: The filtered image.
     """
     C = average_filter(np.ones(u.shape), r)  # to avoid image edges pb
     mean_u = average_filter(u, r) / C
@@ -72,6 +91,18 @@ def guided_filter(u, guide, r, eps):
 
 
 def guided_filter_with_colored_guide(u, guide, r, eps):
+    """
+    Guided filtering on image u using colored guide, with filter radius r and regularization parameter eps.
+
+    Parameters:
+        :u (numpy.ndarray): One color channel for the input image.
+        :guide (numpy.ndarray): The colored guide image.
+        :r (int): The filter radius.
+        :eps (float): The regularization parameter.
+
+    Returns:
+        numpy.ndarray: The filtered image.
+    """
     C = average_filter(np.ones(u.shape), r)  # to avoid image edges pb
     mean_u = average_filter(u, r) / C  # (W, H)
     mean_guide = average_filter_multichannel(guide, r) / C[:, :, None]  # (W, H, 3)
@@ -107,6 +138,18 @@ def guided_filter_with_colored_guide(u, guide, r, eps):
 
 
 def guided_filter_with_colored_guide_slow(u, guide, r, eps):
+    """
+    Guided filtering on image u using colored guide, with filter radius r and regularization parameter eps (slow implementation).
+
+    Parameters:
+        u (numpy.ndarray): One color channel for the input image.
+        guide (numpy.ndarray): The colored guide image.
+        r (int): The filter radius.
+        eps (float): The regularization parameter.
+
+    Returns:
+        numpy.ndarray: The filtered image.
+    """
     (width, height) = u.shape[:2]
     alpha = np.zeros((width, height, 3))
     beta = np.zeros((width, height))
@@ -153,18 +196,3 @@ def guided_filter_with_colored_guide_slow(u, guide, r, eps):
         for j in range(height):
             q[i, j] = np.dot(alpha_mean[i, j], guide[i, j]) + beta_mean[i, j]
     return q
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    import os
-
-    image_folder = os.path.join("dataset", "guided_filter_tests")
-    imrgb1 = plt.imread(os.path.join(image_folder, "renoir.jpg")) / 255
-    imrgb2 = plt.imread(os.path.join(image_folder, "gauguin.jpg")) / 255
-    noisy_imrgb1 = imrgb1 + np.random.normal(0, 0.2, imrgb1.shape)
-
-    # useful if the image is a png with a transparency channel
-    imrgb1 = imrgb1[:, :, 0:3]
-    imrgb2 = imrgb2[:, :, 0:3]
-    guided_filter_with_colored_guide(noisy_imrgb1[:, :, 0], imrgb1, 20, 1e-4)
