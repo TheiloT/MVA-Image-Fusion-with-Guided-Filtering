@@ -23,6 +23,31 @@ def show_images(im1, im2, title1, title2, gray=False):
     axes[1].set_title(f"Cathedral 2: {title2}")
     plt.show()
 
+def show_3_images(im1, im2, im3, title1, title2, title3, gray=False):
+    """
+    Display two images side by side.
+
+    Parameters:
+        :im1 (numpy.ndarray): The first image.
+        :im2 (numpy.ndarray): The second image.
+        :im3 (numpy.ndarray): The third image.
+        :title1 (str): The title for the first image.
+        :title2 (str): The title for the second image.
+        :title3 (str): The title for the third image.
+        :gray (bool, optional): Whether to display the images in grayscale. Defaults to False.
+    """
+    _, axes = plt.subplots(1, 3, figsize=(12, 5))
+    axes[0].imshow(im1, cmap="gray" if gray else None)
+    axes[0].axis("off")
+    axes[0].set_title(f"{title1}")
+    axes[1].imshow(im2, cmap="gray" if gray else None)
+    axes[1].axis("off")
+    axes[1].set_title(f"{title2}")
+    axes[2].imshow(im3, cmap="gray" if gray else None)
+    axes[2].axis("off")
+    axes[2].set_title(f"{title3}")
+    plt.show()
+
 
 def rgb2gray(rgb, use_opencv=False):
     """
