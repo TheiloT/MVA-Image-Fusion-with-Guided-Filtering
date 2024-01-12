@@ -1,7 +1,7 @@
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
 from scipy.ndimage import sobel
-from .guided_filter import average_filter, average_filter_multichannel
+from .guided_filter import average_filter
 
 def entropy(gray_img):
     """
@@ -111,8 +111,8 @@ def structural_similarity_metric_colored(img1, img2, fusion, window_size): #Not 
 
     #Compute variance in each window
     r = window_size // 2
-    mean_img1 = average_filter_multichannel(img1, r)
-    corr_img1 = average_filter_multichannel(img1 * img1, r)
+    mean_img1 = average_filter(img1, r)
+    corr_img1 = average_filter(img1 * img1, r)
     var_img1 = corr_img1 - mean_img1 * mean_img1 #This is not the right computation for variance, but I don't know how to deal with (W, H, 3, 3) arrays
     # corr_img1 = np.zeros((img1.shape[0], img1.shape[1], 3, 3))  # (W, H, 3, 3)
     # for i in range(3):
@@ -120,8 +120,8 @@ def structural_similarity_metric_colored(img1, img2, fusion, window_size): #Not 
     #         corr_img1[:, :, i, j] = average_filter(img1[:, :, i] * img1[:, :, j], r)
     # var_img1 = corr_img1 - mean_img1[:,:,None,:] * mean_img1[:,:,:,None]
 
-    mean_img2 = average_filter_multichannel(img2, r)
-    corr_img2 = average_filter_multichannel(img2 * img2, r)
+    mean_img2 = average_filter(img2, r)
+    corr_img2 = average_filter(img2 * img2, r)
     var_img2 = corr_img2 - mean_img2 * mean_img2 
     # corr_img2 = np.zeros((img2.shape[0], img2.shape[1], 3, 3))  # (W, H, 3, 3)
     # for i in range(3):

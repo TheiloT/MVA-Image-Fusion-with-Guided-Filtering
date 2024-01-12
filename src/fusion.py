@@ -6,6 +6,7 @@ from .utils import show_images
 from .guided_filter import (
     average_filter,
     guided_filter_with_colored_guide,
+    guided_filter
 )
 
 
@@ -13,7 +14,7 @@ def get_base_detail_layers(im, average_filter_size=31):
     # Compute base layers
     # For an average filter, we can apply the filter to each color channel separately
     base = average_filter(im, average_filter_size).astype(int)
-    
+
     # Compute details layers
     detail = im - base  # Remark: how to interpret negative values?
 
@@ -22,7 +23,10 @@ def get_base_detail_layers(im, average_filter_size=31):
 
 def apply_laplacian_filter(im, kernel_size=3, sigma=0, local_average_size=7):
     im_blur = cv2.GaussianBlur(im, (kernel_size, kernel_size), sigma)
-    im_gray = cv2.cvtColor(im_blur, cv2.COLOR_RGB2GRAY)
+    if len(im_blur.shape) > 2:
+        im_gray = cv2.cvtColor(im_blur, cv2.COLOR_RGB2GRAY)
+    else: 
+        im_gray = im_blur
     H = cv2.Laplacian(im_gray, ddepth=-1, ksize=kernel_size)
     H = cv2.convertScaleAbs(H)
     H = average_filter(
@@ -68,37 +72,36 @@ def get_weight_masks(saliency_maps, guide1, guide2, r1=45, eps1=0.3, r2=7, eps2=
             "Weight map computation for more than 2 images is not implemented yet"
         )
     P1, P2 = get_weight_mask_precursors(saliency_maps)
-    W1B = np.clip(
-        guided_filter_with_colored_guide(P1, guide1.astype(np.float32) / 255, r1, eps1),
-        0,
-        None,
-    )
-    W2B = np.clip(
-        guided_filter_with_colored_guide(P2, guide2.astype(np.float32) / 255, r1, eps1),
-        0,
-        None,
-    )
+    if len(guide1.shape) > 2:
+        W1B = guided_filter_with_colored_guide(P1, guide1.astype(np.float32) / 255, r1, eps1)
+        W2B = guided_filter_with_colored_guide(P2, guide2.astype(np.float32) / 255, r1, eps1)
+        W1D = guided_filter_with_colored_guide(P1, guide1.astype(np.float32) / 255, r2, eps2)
+        W2D = guided_filter_with_colored_guide(P2, guide2.astype(np.float32) / 255, r2, eps2)
+    else : 
+        W1B = guided_filter(P1, guide1.astype(np.float32) / 255, r1, eps1)
+        W2B = guided_filter(P2, guide2.astype(np.float32) / 255, r1, eps1)
+        W1D = guided_filter(P1, guide1.astype(np.float32) / 255, r2, eps2)
+        W2D = guided_filter(P2, guide2.astype(np.float32) / 255, r2, eps2)
+    
+    W1B = np.clip(W1B, 0, None,)
+    W2B = np.clip(W2B, 0, None,)
+    W1D = np.clip(W1D, 0, None,)
+    W2D = np.clip(W2D, 0, None,)    
     W1B = W1B / (W1B + W2B)
     W2B = W2B / (W1B + W2B)
-    W1D = np.clip(
-        guided_filter_with_colored_guide(P1, guide1.astype(np.float32) / 255, r2, eps2),
-        0,
-        None,
-    )
-    W2D = np.clip(
-        guided_filter_with_colored_guide(P2, guide2.astype(np.float32) / 255, r2, eps2),
-        0,
-        None,
-    )
     W1D = W1D / (W1D + W2D)
     W2D = W2D / (W1D + W2D)
-
+    print(W1B.shape)
     return W1B, W2B, W1D, W2D
 
 
 def fuse_layers(base1, base2, detail1, detail2, W1B, W2B, W1D, W2D):
-    fusedB = W1B[:, :, None] * base1 + W2B[:, :, None] * base2
-    fusedD = W1D[:, :, None] * detail1 + W2D[:, :, None] * detail2
+    if len(base1.shape) > 2:
+        fusedB = W1B[:, :, None] * base1 + W2B[:, :, None] * base2
+        fusedD = W1D[:, :, None] * detail1 + W2D[:, :, None] * detail2
+    else : 
+        fusedB = W1B * base1 + W2B * base2
+        fusedD = W1D * detail1 + W2D * detail2
     return fusedB.astype(int), fusedD.astype(int)
 
 
