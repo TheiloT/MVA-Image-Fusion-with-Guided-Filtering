@@ -1,8 +1,9 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.ndimage import gaussian_filter
 import cv2
 
-from .utils import show_images
+from .utils import show_images, show_multi_images
 from .guided_filter import (
     average_filter,
     guided_filter_with_colored_guide,
@@ -54,59 +55,48 @@ def get_saliency_map(
 
 
 def get_weight_mask_precursors(saliency_maps):
-    if saliency_maps.shape[0] > 2:
-        raise NotImplementedError(
-            "Weight map computation for more than 2 images is not implemented yet"
-        )
-    saliency1, saliency2 = saliency_maps
-    P1 = (saliency1 >= saliency2).astype(int)
-    P2 = 1 - P1
-
-    return P1, P2
+    argmaxes = np.argmax(saliency_maps, axis=0)
+    Ps = []
+    for i in range(saliency_maps.shape[0]):
+        P = np.zeros(saliency_maps[0].shape)
+        P[argmaxes == i] = 1
+        Ps.append(P)
+    return Ps
 
 
-def get_weight_masks(saliency_maps, guide1, guide2, r1=45, eps1=0.3, r2=7, eps2=1e-6):
-    if saliency_maps.shape[0] > 2:
-        raise NotImplementedError(
-            "Weight map computation for more than 2 images is not implemented yet"
-        )
-    P1, P2 = get_weight_mask_precursors(saliency_maps)
-    if len(guide1.shape) > 2:
-        W1B = guided_filter_with_colored_guide(P1, guide1.astype(np.float32) / 255, r1, eps1)
-        W2B = guided_filter_with_colored_guide(P2, guide2.astype(np.float32) / 255, r1, eps1)
-        W1D = guided_filter_with_colored_guide(P1, guide1.astype(np.float32) / 255, r2, eps2)
-        W2D = guided_filter_with_colored_guide(P2, guide2.astype(np.float32) / 255, r2, eps2)
-    else : 
-        W1B = guided_filter(P1, guide1.astype(np.float32) / 255, r1, eps1)
-        W2B = guided_filter(P2, guide2.astype(np.float32) / 255, r1, eps1)
-        W1D = guided_filter(P1, guide1.astype(np.float32) / 255, r2, eps2)
-        W2D = guided_filter(P2, guide2.astype(np.float32) / 255, r2, eps2)
+def get_weight_masks(saliency_maps, guides, r1=45, eps1=0.3, r2=7, eps2=1e-6):
+    Ps = get_weight_mask_precursors(saliency_maps)
     
-    eps = 1e-6 # to avoid division by 0
-    W1B = np.clip(W1B, eps, None,)
-    W2B = np.clip(W2B, eps, None,)
-    W1D = np.clip(W1D, eps, None,)
-    W2D = np.clip(W2D, eps, None,)    
-    W1B = W1B / (W1B + W2B)
-    W2B = W2B / (W1B + W2B)
-    W1D = W1D / (W1D + W2D)
-    W2D = W2D / (W1D + W2D)
-    return W1B, W2B, W1D, W2D
+    WB, WD = [], []
+    epsilon = 1e-6 # to avoid divisions by 0
+    for i in range(len(Ps)):
+        if len(guides[0].shape) > 2:
+            WBi = guided_filter_with_colored_guide(Ps[i], guides[i].astype(np.float32) / 255, r1, eps1)
+            WDi = guided_filter_with_colored_guide(Ps[i], guides[i].astype(np.float32) / 255, r2, eps2)
+        else : 
+            WBi = guided_filter(Ps[i], guides[i].astype(np.float32) / 255, r1, eps1)
+            WDi = guided_filter(Ps[i], guides[i].astype(np.float32) / 255, r2, eps2)
+        WB.append(np.clip(WBi, epsilon, None))
+        WD.append(np.clip(WDi, epsilon, None))
+
+    WB = WB/np.sum(WB, axis=0)
+    WD = WD/np.sum(WD, axis=0)
+
+    return WB, WD
 
 
-def fuse_layers(base1, base2, detail1, detail2, W1B, W2B, W1D, W2D):
-    if len(base1.shape) > 2:
-        fusedB = W1B[:, :, None] * base1 + W2B[:, :, None] * base2
-        fusedD = W1D[:, :, None] * detail1 + W2D[:, :, None] * detail2
+def fuse_layers(bases, details, WB, WD):
+    if len(bases[0].shape) > 2:
+        fusedB = np.average(bases, axis=0, weights=np.repeat(np.expand_dims(WB, -1), bases.shape[-1], axis=-1))
+        fusedD = np.average(details, axis=0, weights=np.repeat(np.expand_dims(WD, -1), bases.shape[-1], axis=-1))
     else : 
-        fusedB = W1B * base1 + W2B * base2
-        fusedD = W1D * detail1 + W2D * detail2
+        fusedB = np.average(bases, axis=0, weights=WB)
+        fusedD = np.average(details, axis=0, weights=WD)
     return fusedB.astype(int), fusedD.astype(int)
 
 
 def fuse_images(
-    im1,
-    im2,
+    imgs,
     average_filter_size=31,
     laplacian_kernel_size=3,
     gaussian_filter_sigma=5,
@@ -122,8 +112,7 @@ def fuse_images(
     Fuse two images using guided filtering for image fusion.
 
     Parameters:
-        :im1 (numpy.ndarray): The first input image.
-        :im2 (numpy.ndarray): The second input image.
+        :imgs (numpy.ndarray): The images to fuse.
         :average_filter_size (int, optional): The size of the average filter for computing base and detail layers. Defaults to 31.
         :laplacian_kernel_size (int, optional): The size of the Laplacian kernel for computing saliency maps. Defaults to 3.
         :gaussian_filter_sigma (float, optional): The standard deviation of the Gaussian filter for computing saliency maps. Defaults to 5.
@@ -138,53 +127,54 @@ def fuse_images(
     Returns:
         numpy.ndarray: The fused image.
     """
+    # Enforce that all images are encoded in uint8
+    for img in imgs:
+        assert img.dtype == np.uint8
+    
     # Compute base and detail layers
     if verbose:
         print("Computing base and detail layers...")
-    base1, detail1 = get_base_detail_layers(im1, average_filter_size)
-    base2, detail2 = get_base_detail_layers(im2, average_filter_size)
+    bases, details = [], []
+    for img in imgs:
+        base, detail = get_base_detail_layers(img, average_filter_size)
+        bases.append(base)
+        details.append(detail)
+    bases, details = np.array(bases), np.array(details)
     if verbose:
-        show_images(base1, base2, "base", "base")
-        show_images(detail1, detail2, "detail", "detail")
+        show_multi_images(bases, "Base layers")
+        show_multi_images(details, "Detail layers")
         print()
 
     # Compute saliency maps
     if verbose:
         print("Computing saliency maps...")
-    saliency1 = get_saliency_map(
-        im1,
-        laplacian_kernel_size=laplacian_kernel_size,
-        local_average_size=local_average_size,
-        gaussian_filter_sigma=gaussian_filter_sigma,
-        gaussian_filter_radius=gaussian_filter_radius,
-    )
-    saliency2 = get_saliency_map(
-        im2,
-        laplacian_kernel_size=laplacian_kernel_size,
-        local_average_size=local_average_size,
-        gaussian_filter_sigma=gaussian_filter_sigma,
-        gaussian_filter_radius=gaussian_filter_radius,
-    )
-    saliency_maps = np.array([saliency1, saliency2])
+    saliency_maps = []
+    for img in imgs:
+        saliency_maps.append(get_saliency_map(
+            img,
+            laplacian_kernel_size=laplacian_kernel_size,
+            local_average_size=local_average_size,
+            gaussian_filter_sigma=gaussian_filter_sigma,
+            gaussian_filter_radius=gaussian_filter_radius,
+        ))
+    saliency_maps = np.array(saliency_maps)
     if verbose:
-        show_images(saliency1, saliency2, "Saliency", "Saliency", gray=True)
+        show_multi_images(saliency_maps, "Saliency maps", gray=True)
         print()
 
     # Compute weight maps
     if verbose:
         print("Computing weight maps...")
-    W1B, W2B, W1D, W2D = get_weight_masks(saliency_maps, im1, im2, r1, eps1, r2, eps2)
+    WB, WD = get_weight_masks(saliency_maps, imgs, r1, eps1, r2, eps2)
     if verbose:
-        show_images(W1B, W2B, "Weight mask for base", "Weight mask for base", gray=True)
-        show_images(
-            W1D, W2D, "Weight mask for detail", "Weight mask for detail", gray=True
-        )
+        show_multi_images(WB, "Weight masks for base layers", gray=True, scale=[0, 1])
+        show_multi_images(WD, "Weight masks for detail layers", gray=True, scale=[0, 1])
         print()
 
     # Fuse layers
     if verbose:
         print("Fusing layers...")
-    fusedB, fusedD = fuse_layers(base1, base2, detail1, detail2, W1B, W2B, W1D, W2D)
+    fusedB, fusedD = fuse_layers(bases, details, WB, WD)
     if verbose:
         show_images(fusedB, fusedD, "Fused base", "Fused detail")
         print()
@@ -192,6 +182,9 @@ def fuse_images(
     fused_image = fusedB + fusedD
     if verbose:
         print("Fused image:")
-        show_images(fused_image, fused_image, "Fused image", "Fused image")
+        plt.imshow(fused_image, cmap="gray" if len(fused_image.shape) > 2 else None)
+        plt.axis("off")
+        plt.title(f"Fused image")
+        plt.show()
 
     return fused_image

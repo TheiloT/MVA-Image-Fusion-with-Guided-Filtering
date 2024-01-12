@@ -69,6 +69,31 @@ def rgb2gray(rgb, use_opencv=False):
 
 def zoom_on_detail(img, top_left=[150,150], width=200, height=200):
     #Zooming on details
+    plt.figure(figsize=(6,6))
     plt.imshow(img[top_left[0]:top_left[0]+height, top_left[1]:top_left[1]+width, :])
     plt.title("Zoom on detail")
     plt.axis('off')
+    
+def show_multi_images(images, title, gray=False, scale=[None, None]):
+    """
+    Display multiple images
+
+    Parameters:
+        :images (list(numpy.ndarray)): The list of images.
+        :title (str): The title for the figure.
+        :gray (bool, optional): Whether to display the images in grayscale. Defaults to False.
+    """
+    nrows, ncols = 1 + (len(images)-1)//4, min(4, len(images))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols*3, 5*nrows-1))
+    fig.suptitle(title)
+
+    for i, ax in enumerate(axes.flat):
+        if i < len(images):
+            ax.imshow(images[i], cmap="gray" if gray else None, vmin=scale[0], vmax=scale[1])
+            ax.axis("off")
+            ax.set_title(f"Image {i+1}")
+        else:
+            ax.axis("off")
+
+    plt.tight_layout()
+    plt.show()
