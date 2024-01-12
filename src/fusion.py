@@ -22,9 +22,9 @@ def get_base_detail_layers(im, average_filter_size=31):
 
 
 def apply_laplacian_filter(im, kernel_size=3, sigma=0, local_average_size=7):
-    im1_blur = cv2.GaussianBlur(im, (kernel_size, kernel_size), sigma)
-    im1_gray = cv2.cvtColor(im1_blur, cv2.COLOR_RGB2GRAY)
-    H = cv2.Laplacian(im1_gray, ddepth=-1, ksize=kernel_size)
+    im_blur = cv2.GaussianBlur(im, (kernel_size, kernel_size), sigma)
+    im_gray = cv2.cvtColor(im_blur, cv2.COLOR_RGB2GRAY)
+    H = cv2.Laplacian(im_gray, ddepth=-1, ksize=kernel_size)
     H = cv2.convertScaleAbs(H)
     H = average_filter(
         H, local_average_size
