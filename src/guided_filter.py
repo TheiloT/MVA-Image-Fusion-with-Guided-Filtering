@@ -1,8 +1,9 @@
 import numpy as np
+import cv2
 
 
 # Numpy implementation
-def average_filter(u, r):
+def average_filter_no_edge(u, r):
     """
     Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
     Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
@@ -30,7 +31,7 @@ def average_filter(u, r):
     return out
 
 
-def average_filter_multichannel(u, r):
+def average_filter_multichannel_no_edge(u, r):
     """
     Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
     Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
@@ -54,8 +55,27 @@ def average_filter_multichannel(u, r):
         - big_uint[2 * r + 1 : nrow + 2 * r + 1, 0:ncol]
     )
     out = out / (2 * r + 1) ** 2
-
+    
     return out
+
+
+def average_filter(u, r):
+    """
+    Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
+
+    Parameters:
+        :u (numpy.ndarray): The input image.
+        :r (int): The filter radius.
+
+    Returns:
+        numpy.ndarray: The filtered image.
+    """
+    if len(u.shape) == 2:
+        C = average_filter_no_edge(np.ones(u.shape), r)  # to avoid image edges pb
+        return average_filter_no_edge(u, r) / C
+    else:
+        C = average_filter_no_edge(np.ones(u.shape[:2]), r)  # to avoid image edges pb
+        return average_filter_multichannel_no_edge(u, r) / C[:, :, None]
 
 
 def guided_filter(u, guide, r, eps):
@@ -72,19 +92,18 @@ def guided_filter(u, guide, r, eps):
     Returns:
         numpy.ndarray: The filtered image.
     """
-    C = average_filter(np.ones(u.shape), r)  # to avoid image edges pb
-    mean_u = average_filter(u, r) / C
-    mean_guide = average_filter(guide, r) / C
-    corr_guide = average_filter(guide * guide, r) / C
-    corr_uguide = average_filter(u * guide, r) / C
+    mean_u = average_filter(u, r)
+    mean_guide = average_filter(guide, r)
+    corr_guide = average_filter(guide * guide, r)
+    corr_uguide = average_filter(u * guide, r)
     var_guide = corr_guide - mean_guide * mean_guide
     cov_uguide = corr_uguide - mean_u * mean_guide
 
     alph = cov_uguide / (var_guide + eps)
     beta = mean_u - alph * mean_guide
 
-    mean_alph = average_filter(alph, r) / C
-    mean_beta = average_filter(beta, r) / C
+    mean_alph = average_filter(alph, r)
+    mean_beta = average_filter(beta, r)
 
     q = mean_alph * guide + mean_beta
     return q
@@ -103,15 +122,14 @@ def guided_filter_with_colored_guide(u, guide, r, eps):
     Returns:
         numpy.ndarray: The filtered image.
     """
-    C = average_filter(np.ones(u.shape), r)  # to avoid image edges pb
-    mean_u = average_filter(u, r) / C  # (W, H)
-    mean_guide = average_filter_multichannel(guide, r) / C[:, :, None]  # (W, H, 3)
+    mean_u = average_filter(u, r)  # (W, H)
+    mean_guide = average_filter(guide, r)  # (W, H, 3)
 
     corr_guide = np.zeros((guide.shape[0], guide.shape[1], 3, 3))  # (W, H, 3, 3)
     for i in range(3):
         for j in range(3):
             corr_guide[:, :, i, j] = (
-                average_filter(guide[:, :, i] * guide[:, :, j], r) / C
+                average_filter(guide[:, :, i] * guide[:, :, j], r)
             )
     cov_guide = (
         corr_guide - mean_guide[:, :, None, :] * mean_guide[:, :, :, None]
@@ -119,7 +137,7 @@ def guided_filter_with_colored_guide(u, guide, r, eps):
 
     corr_uguide = np.zeros((guide.shape[0], guide.shape[1], 3))  # (W, H, 3)
     for i in range(3):
-        corr_uguide[:, :, i] = average_filter(u * guide[:, :, i], r) / C
+        corr_uguide[:, :, i] = average_filter(u * guide[:, :, i], r)
     cov_uguide = corr_uguide - mean_u[:, :, None] * mean_guide  # (W, H, 3)
 
     U = eps * np.eye(3)
@@ -131,8 +149,8 @@ def guided_filter_with_colored_guide(u, guide, r, eps):
     )
     beta = mean_u - np.sum(alpha * mean_guide, axis=2)
 
-    mean_alpha = average_filter_multichannel(alpha, r) / C[:, :, None]
-    mean_beta = average_filter(beta, r) / C[:, :]
+    mean_alpha = average_filter(alpha, r)
+    mean_beta = average_filter(beta, r)
 
     return np.sum(mean_alpha * guide, axis=-1) + mean_beta
 

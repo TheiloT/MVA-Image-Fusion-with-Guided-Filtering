@@ -17,10 +17,10 @@ def show_images(im1, im2, title1, title2, gray=False):
     _, axes = plt.subplots(1, 2, figsize=(8, 4))
     axes[0].imshow(im1, cmap="gray" if gray else None)
     axes[0].axis("off")
-    axes[0].set_title(f"Cathedral 1: {title1}")
+    axes[0].set_title(f"Image 1: {title1}")
     axes[1].imshow(im2, cmap="gray" if gray else None)
     axes[1].axis("off")
-    axes[1].set_title(f"Cathedral 2: {title2}")
+    axes[1].set_title(f"Image 2: {title2}")
     plt.show()
 
 def show_3_images(im1, im2, im3, title1, title2, title3, gray=False):
@@ -125,3 +125,9 @@ def normalized_mutual_information_metric(gray_img1, gray_img2, gray_fusion):
     mutual_info1 = entropy1 + entropyf - joint_entropy(gray_img1, gray_fusion)
     mutual_info2 = entropy2 + entropyf - joint_entropy(gray_img2, gray_fusion)
     return 2 * (mutual_info1 / (entropy1 + entropyf) + mutual_info2 / (entropy2 + entropyf))
+
+def zoom_on_detail(img, top_left=[150,150], width=200, height=200):
+    #Zooming on details
+    plt.imshow(img[top_left[0]:top_left[0]+height, top_left[1]:top_left[1]+width, :])
+    plt.title("Zoom on detail")
+    plt.axis('off')

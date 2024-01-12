@@ -4,7 +4,6 @@ import cv2
 
 from .utils import show_images
 from .guided_filter import (
-    average_filter_multichannel,
     average_filter,
     guided_filter_with_colored_guide,
 )
@@ -13,8 +12,8 @@ from .guided_filter import (
 def get_base_detail_layers(im, average_filter_size=31):
     # Compute base layers
     # For an average filter, we can apply the filter to each color channel separately
-    base = average_filter_multichannel(im, average_filter_size).astype(int)
-
+    base = average_filter(im, average_filter_size).astype(int)
+    
     # Compute details layers
     detail = im - base  # Remark: how to interpret negative values?
 
