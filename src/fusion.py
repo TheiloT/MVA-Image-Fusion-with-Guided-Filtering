@@ -12,7 +12,6 @@ from .guided_filter import (
 
 def get_base_detail_layers(im, average_filter_size=31):
     # Compute base layers
-    # For an average filter, we can apply the filter to each color channel separately
     base = average_filter(im, average_filter_size).astype(int)
 
     # Compute details layers
@@ -83,15 +82,15 @@ def get_weight_masks(saliency_maps, guide1, guide2, r1=45, eps1=0.3, r2=7, eps2=
         W1D = guided_filter(P1, guide1.astype(np.float32) / 255, r2, eps2)
         W2D = guided_filter(P2, guide2.astype(np.float32) / 255, r2, eps2)
     
-    W1B = np.clip(W1B, 0, None,)
-    W2B = np.clip(W2B, 0, None,)
-    W1D = np.clip(W1D, 0, None,)
-    W2D = np.clip(W2D, 0, None,)    
+    eps = 1e-6 # to avoid division by 0
+    W1B = np.clip(W1B, eps, None,)
+    W2B = np.clip(W2B, eps, None,)
+    W1D = np.clip(W1D, eps, None,)
+    W2D = np.clip(W2D, eps, None,)    
     W1B = W1B / (W1B + W2B)
     W2B = W2B / (W1B + W2B)
     W1D = W1D / (W1D + W2D)
     W2D = W2D / (W1D + W2D)
-    print(W1B.shape)
     return W1B, W2B, W1D, W2D
 
 
