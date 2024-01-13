@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import pickle
 import os
@@ -75,11 +76,38 @@ def average_metric(metric, parameter, value):
     for image in range(1,11):
         with open(os.path.join(exp_path, f"c_{int(image)}", "metrics.pkl"), "rb") as pickle_file:
             metric_storage = pickle.load(pickle_file)
-            print(metric_storage)
         metrics.append(metric_storage[metric])
     return np.mean(metrics), np.std(metrics)
     
+def plot_metric(parameter, values):
+    """
+    Plot the metrics for a given parameter and given values.
+    """
+    markers = {"nmi": 'o', "smm": 'x', "eim": '*'}
+    colors = {"nmi": 'r', "smm": 'g', "eim": 'b'}
+    parameter_display = {"r1": r"$r_1$", "eps1": r"$\varepsilon_1$", "r2": r"$r_2$", "eps2": r"$\varepsilon_2$"}
+    metric_display = {"nmi": "NMI", "smm": "SS", "eim": "EI"}
+    with sns.axes_style("darkgrid"):
+        for metric in ["nmi", "smm", "eim"]:
+            means, stds = [], []
+            for value in values:
+                mean, std = average_metric(metric, parameter, value)
+                means.append(mean)
+                stds.append(std)
+            plt.plot(values, means, marker=markers[metric], color=colors[metric], label=metric_display[metric])
+            plt.fill_between(values, np.array(means)-np.array(stds), np.array(means)+np.array(stds), color=colors[metric], alpha=0.2)
+            plt.xlabel(parameter_display[parameter])
+        plt.xscale("log")
+        plt.ylabel("Metric")
+        plt.legend()
+        plt.title("Average metrics for " + parameter_display[parameter])
+        plt.show()
+
 
 if __name__ == "__main__":
     # launch_experiment()
-    print(average_metric("eim", "r1", 1))
+    # plot_metric("r1", [1, 3, 5, 10, 20, 30, 50, 70, 100, 300])
+    # plot_metric("r2", [1, 3, 5, 10, 20, 30, 50, 70, 100, 300])
+    # plot_metric("eps1", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10])
+    plot_metric("eps2", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10])
+        

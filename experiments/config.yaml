@@ -1,0 +1,12 @@
+parameter: "r1"
+value: 45
+image: 1
+
+hydra:
+  job:
+    chdir: true
+  run:
+    dir: ./experiments/results/${parameter}/${value}/c_${image}
+  sweep:
+    dir: ./experiments/results/
+    subdir: ${parameter}/${value}/c_${image}
