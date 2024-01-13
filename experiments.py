@@ -79,7 +79,7 @@ def average_metric(metric, parameter, value):
         metrics.append(metric_storage[metric])
     return np.mean(metrics), np.std(metrics)
     
-def plot_metric(parameter, values):
+def plot_metric(parameter, values, save=False):
     """
     Plot the metrics for a given parameter and given values.
     """
@@ -101,13 +101,13 @@ def plot_metric(parameter, values):
         plt.ylabel("Metric")
         plt.legend()
         plt.title("Average metrics for " + parameter_display[parameter])
+        if save:
+            plt.savefig(os.path.join("experiments/plots", f"plot_metrics_{parameter}.png"))
         plt.show()
 
-
 if __name__ == "__main__":
-    # launch_experiment()
+    launch_experiment()
     # plot_metric("r1", [1, 3, 5, 10, 20, 30, 50, 70, 100, 300])
     # plot_metric("r2", [1, 3, 5, 10, 20, 30, 50, 70, 100, 300])
     # plot_metric("eps1", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10])
-    plot_metric("eps2", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10])
-        
+    # plot_metric("eps2", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10])
