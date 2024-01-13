@@ -107,6 +107,7 @@ def fuse_images(
     r2=7,
     eps2=1e-6,
     verbose=False,
+    savefigs=False,
 ):
     """
     Fuse two images using guided filtering for image fusion.
@@ -123,6 +124,7 @@ def fuse_images(
         :r2 (int, optional): The radius of the guided filter for computing weight masks. Defaults to 7.
         :eps2 (float, optional): The epsilon parameter of the guided filter for computing weight masks. Defaults to 1e-6.
         :verbose (bool, optional): Whether to print intermediate results. Defaults to False.
+        :savefigs (bool, optional): Whether to save intermediate figures. Defaults to False.
 
     Returns:
         numpy.ndarray: The fused image.
@@ -166,9 +168,9 @@ def fuse_images(
     if verbose:
         print("Computing weight maps...")
     WB, WD = get_weight_masks(saliency_maps, imgs, r1, eps1, r2, eps2)
-    if verbose:
-        show_multi_images(WB, "Weight masks for base layers", gray=True, scale=[0, 1])
-        show_multi_images(WD, "Weight masks for detail layers", gray=True, scale=[0, 1])
+    if verbose or savefigs:
+        show_multi_images(WB, "Weight masks for base layers", gray=True, scale=[0, 1], savename="WB" if savefigs else None)
+        show_multi_images(WD, "Weight masks for detail layers", gray=True, scale=[0, 1], savename="WD" if savefigs else None)
         print()
 
     # Fuse layers
@@ -180,11 +182,16 @@ def fuse_images(
         print()
 
     fused_image = fusedB + fusedD
-    if verbose:
-        print("Fused image:")
+    if verbose or savefigs:
+        if verbose:
+            print("Fused image:")
+        plt.close("all")
         plt.imshow(fused_image, cmap="gray" if len(fused_image.shape) > 2 else None)
         plt.axis("off")
         plt.title(f"Fused image")
-        plt.show()
+        if savefigs:
+            plt.savefig(f"fused.png")
+        else:
+            plt.show()
 
     return fused_image

@@ -65,7 +65,7 @@ def rgb2gray(rgb, use_opencv=False):
     else:
         return np.dot(
             rgb[..., :3], [0.299, 0.587, 0.114]
-        )  # Chosen to comply with OpenCV, see https://docs.opencv.org/3.4/de/d25/imgproc_color_conversions.html
+        ).astype(np.uint8)  # Chosen to comply with OpenCV, see https://docs.opencv.org/3.4/de/d25/imgproc_color_conversions.html
 
 def zoom_on_detail(img, top_left=[150,150], width=200, height=200):
     #Zooming on details
@@ -74,7 +74,7 @@ def zoom_on_detail(img, top_left=[150,150], width=200, height=200):
     plt.title("Zoom on detail")
     plt.axis('off')
     
-def show_multi_images(images, title, gray=False, scale=[None, None]):
+def show_multi_images(images, title, gray=False, scale=[None, None], savename=False):
     """
     Display multiple images
 
@@ -82,6 +82,8 @@ def show_multi_images(images, title, gray=False, scale=[None, None]):
         :images (list(numpy.ndarray)): The list of images.
         :title (str): The title for the figure.
         :gray (bool, optional): Whether to display the images in grayscale. Defaults to False.
+        :scale (list(float), optional): Value range covered by the grayscale colormap. Defaults to [None, None].
+        :savename (bool, optional): Name under which to save the figure. Do not save if False. Defaults to False.
     """
     nrows, ncols = 1 + (len(images)-1)//4, min(4, len(images))
     fig, axes = plt.subplots(nrows, ncols, figsize=(ncols*3, 5*nrows-1))
@@ -96,4 +98,7 @@ def show_multi_images(images, title, gray=False, scale=[None, None]):
             ax.axis("off")
 
     plt.tight_layout()
-    plt.show()
+    if savename:
+        plt.savefig(f"{savename}.png")
+    else:
+        plt.show()
