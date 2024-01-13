@@ -64,7 +64,7 @@ def launch_experiment(config: DictConfig):
     sigma_g=0.5
     sigma_o=0.8
     L = 1.5
-    eim = edge_information_metric(rgb2gray(im1), rgb2gray(im2), rgb2gray(fused_image), gamma_g, gamma_o, kappa_g, kappa_o, sigma_g, sigma_o, L)
+    eim = edge_information_metric(rgb2gray(im1).astype(int), rgb2gray(im2).astype(int), rgb2gray(fused_image).astype(int), gamma_g, gamma_o, kappa_g, kappa_o, sigma_g, sigma_o, L)
     pickle.dump({"nmi": nmi, "smm": smm, "eim": eim}, open(f"metrics.pkl", "wb"))
 
 def average_metric(metric, parameter, value):
@@ -106,8 +106,8 @@ def plot_metric(parameter, values, save=False):
         plt.show()
 
 if __name__ == "__main__":
-    launch_experiment()
-    # plot_metric("r1", [1, 3, 5, 10, 20, 30, 50, 70, 100, 300])
-    # plot_metric("r2", [1, 3, 5, 10, 20, 30, 50, 70, 100, 300])
-    # plot_metric("eps1", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10])
-    # plot_metric("eps2", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10])
+    # launch_experiment()
+    plot_metric("r1", [1, 3, 5, 7, 10, 25, 50, 70, 100, 300], save=True)
+    plot_metric("r2", [1, 3, 5, 7, 10, 25, 50, 70, 100, 300], save=True)
+    plot_metric("eps1", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10], save=True)
+    plot_metric("eps2", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10], save=True)

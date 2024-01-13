@@ -84,7 +84,6 @@ def get_weight_masks(saliency_maps, guides, r1=45, eps1=0.3, r2=7, eps2=1e-6):
 
     return WB, WD
 
-
 def fuse_layers(bases, details, WB, WD):
     if len(bases[0].shape) > 2:
         fusedB = np.average(bases, axis=0, weights=np.repeat(np.expand_dims(WB, -1), bases.shape[-1], axis=-1))
@@ -110,7 +109,7 @@ def fuse_images(
     savefigs=False,
 ):
     """
-    Fuse two images using guided filtering for image fusion.
+    Fuse multiple images using guided filtering.
 
     Parameters:
         :imgs (numpy.ndarray): The images to fuse.
@@ -186,7 +185,107 @@ def fuse_images(
         if verbose:
             print("Fused image:")
         plt.close("all")
-        plt.imshow(fused_image, cmap="gray" if len(fused_image.shape) > 2 else None)
+        plt.imshow(fused_image, cmap="gray" if len(fused_image.shape) == 2 else None)
+        plt.axis("off")
+        plt.title(f"Fused image")
+        if savefigs:
+            plt.savefig(f"fused.png")
+        else:
+            plt.show()
+
+    return fused_image
+
+
+def get_weight_masks_no_decomposition(saliency_maps, guides, r=45, eps=0.3):
+    Ps = get_weight_mask_precursors(saliency_maps)
+    
+    W = []
+    epsilon = 1e-6 # to avoid divisions by 0
+    for i in range(len(Ps)):
+        if len(guides[0].shape) > 2:
+            Wi = guided_filter_with_colored_guide(Ps[i], guides[i].astype(np.float32) / 255, r, eps)
+        else : 
+            Wi = guided_filter(Ps[i], guides[i].astype(np.float32) / 255, r, eps)
+        W.append(np.clip(Wi, epsilon, None))
+
+    W = W/np.sum(W, axis=0)
+
+    return W
+
+def fuse_layers_no_decomposition(images, W):
+    if len(images[0].shape) > 2:
+        fused = np.average(images, axis=0, weights=np.repeat(np.expand_dims(W, -1), images.shape[-1], axis=-1))
+    else : 
+        fused = np.average(images, axis=0, weights=W)
+    return fused.astype(int)
+
+
+def fuse_images_no_decomposition(
+    imgs,
+    laplacian_kernel_size=3,
+    gaussian_filter_sigma=5,
+    gaussian_filter_radius=5,
+    local_average_size=7,
+    r=45,
+    eps=0.3,
+    verbose=False,
+    savefigs=False,
+):
+    """
+    Fuse multiple images using guided filtering, without decomposition into base & detail layers.
+
+    Parameters:
+        :imgs (numpy.ndarray): The images to fuse.
+        :laplacian_kernel_size (int, optional): The size of the Laplacian kernel for computing saliency maps. Defaults to 3.
+        :gaussian_filter_sigma (float, optional): The standard deviation of the Gaussian filter for computing saliency maps. Defaults to 5.
+        :gaussian_filter_radius (int, optional): The radius of the Gaussian filter for computing saliency maps. Defaults to 5.
+        :local_average_size (int, optional): The size of the local average filter for computing saliency maps. Defaults to 7.
+        :r (int, optional): The radius of the guided filter for computing weight masks. Defaults to 45.
+        :eps (float, optional): The epsilon parameter of the guided filter for computing weight masks. Defaults to 0.3.
+        :verbose (bool, optional): Whether to print intermediate results. Defaults to False.
+        :savefigs (bool, optional): Whether to save intermediate figures. Defaults to False.
+
+    Returns:
+        numpy.ndarray: The fused image.
+    """
+    # Enforce that all images are encoded in uint8
+    for img in imgs:
+        assert img.dtype == np.uint8
+
+    # Compute saliency maps
+    if verbose:
+        print("Computing saliency maps...")
+    saliency_maps = []
+    for img in imgs:
+        saliency_maps.append(get_saliency_map(
+            img,
+            laplacian_kernel_size=laplacian_kernel_size,
+            local_average_size=local_average_size,
+            gaussian_filter_sigma=gaussian_filter_sigma,
+            gaussian_filter_radius=gaussian_filter_radius,
+        ))
+    saliency_maps = np.array(saliency_maps)
+    if verbose:
+        show_multi_images(saliency_maps, "Saliency maps", gray=True)
+        print()
+
+    # Compute weight maps
+    if verbose:
+        print("Computing weight maps...")
+    W = get_weight_masks_no_decomposition(saliency_maps, imgs, r, eps)
+    if verbose or savefigs:
+        show_multi_images(W, "Weight masks", gray=True, scale=[0, 1], savename="WB" if savefigs else None)
+        print()
+
+    # Fuse
+    if verbose:
+        print("Fusing...")
+    fused_image = fuse_layers_no_decomposition(np.array(imgs), W)
+    if verbose or savefigs:
+        if verbose:
+            print("Fused image:")
+        plt.close("all")
+        plt.imshow(fused_image, cmap="gray" if len(fused_image.shape) == 2 else None)
         plt.axis("off")
         plt.title(f"Fused image")
         if savefigs:

@@ -61,11 +61,11 @@ def rgb2gray(rgb, use_opencv=False):
         numpy.ndarray: The grayscale image.
     """
     if use_opencv:
-        return cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+        return cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY).astype(np.uint8)
     else:
         return np.dot(
             rgb[..., :3], [0.299, 0.587, 0.114]
-        ).astype(int)  # Chosen to comply with OpenCV, see https://docs.opencv.org/3.4/de/d25/imgproc_color_conversions.html
+        ).astype(np.uint8)  # Chosen to comply with OpenCV, see https://docs.opencv.org/3.4/de/d25/imgproc_color_conversions.html
 
 def zoom_on_detail(img, top_left=[150,150], width=200, height=200):
     #Zooming on details
