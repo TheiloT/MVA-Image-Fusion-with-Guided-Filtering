@@ -13,7 +13,7 @@ from .guided_filter import (
 
 def get_base_detail_layers(im, average_filter_size=31):
     # Compute base layers
-    base = average_filter(im, average_filter_size).astype(int)
+    base = average_filter(im, average_filter_size//2).astype(int)
 
     # Compute details layers
     detail = im - base  # Remark: how to interpret negative values?
@@ -21,7 +21,7 @@ def get_base_detail_layers(im, average_filter_size=31):
     return base, detail
 
 
-def apply_laplacian_filter(im, kernel_size=3, sigma=0, local_average_size=7):
+def apply_laplacian_filter(im, kernel_size=3, sigma=3, local_average_size=14):
     im_blur = cv2.GaussianBlur(im, (kernel_size, kernel_size), sigma)
     if len(im_blur.shape) > 2:
         im_gray = cv2.cvtColor(im_blur, cv2.COLOR_RGB2GRAY)
@@ -30,7 +30,7 @@ def apply_laplacian_filter(im, kernel_size=3, sigma=0, local_average_size=7):
     H = cv2.Laplacian(im_gray, ddepth=-1, ksize=kernel_size)
     H = cv2.convertScaleAbs(H)
     H = average_filter(
-        H, local_average_size
+        H, local_average_size//2
     )  # Take local average of the absolute value
 
     return H
@@ -39,7 +39,7 @@ def apply_laplacian_filter(im, kernel_size=3, sigma=0, local_average_size=7):
 def get_saliency_map(
     im,
     laplacian_kernel_size=3,
-    laplacian_sigma=0,
+    laplacian_sigma=3,
     local_average_size=7,
     gaussian_filter_sigma=5,
     gaussian_filter_radius=5,
@@ -118,10 +118,10 @@ def fuse_images(
         :gaussian_filter_sigma (float, optional): The standard deviation of the Gaussian filter for computing saliency maps. Defaults to 5.
         :gaussian_filter_radius (int, optional): The radius of the Gaussian filter for computing saliency maps. Defaults to 5.
         :local_average_size (int, optional): The size of the local average filter for computing saliency maps. Defaults to 7.
-        :r1 (int, optional): The radius of the guided filter for computing weight masks. Defaults to 45.
-        :eps1 (float, optional): The epsilon parameter of the guided filter for computing weight masks. Defaults to 0.3.
-        :r2 (int, optional): The radius of the guided filter for computing weight masks. Defaults to 7.
-        :eps2 (float, optional): The epsilon parameter of the guided filter for computing weight masks. Defaults to 1e-6.
+        :r1 (int, optional): The radius of the guided filter for computing weight maps. Defaults to 45.
+        :eps1 (float, optional): The epsilon parameter of the guided filter for computing weight maps. Defaults to 0.3.
+        :r2 (int, optional): The radius of the guided filter for computing weight maps. Defaults to 7.
+        :eps2 (float, optional): The epsilon parameter of the guided filter for computing weight maps. Defaults to 1e-6.
         :verbose (bool, optional): Whether to print intermediate results. Defaults to False.
         :savefigs (bool, optional): Whether to save intermediate figures. Defaults to False.
 
@@ -168,8 +168,8 @@ def fuse_images(
         print("Computing weight maps...")
     WB, WD = get_weight_masks(saliency_maps, imgs, r1, eps1, r2, eps2)
     if verbose or savefigs:
-        show_multi_images(WB, "Weight masks for base layers", gray=True, scale=[0, 1], savename="WB" if savefigs else None)
-        show_multi_images(WD, "Weight masks for detail layers", gray=True, scale=[0, 1], savename="WD" if savefigs else None)
+        show_multi_images(WB, "Weight maps for base layers", gray=True, scale=[0, 1], savename="WB" if savefigs else None)
+        show_multi_images(WD, "Weight maps for detail layers", gray=True, scale=[0, 1], savename="WD" if savefigs else None)
         print()
 
     # Fuse layers
@@ -240,8 +240,8 @@ def fuse_images_no_decomposition(
         :gaussian_filter_sigma (float, optional): The standard deviation of the Gaussian filter for computing saliency maps. Defaults to 5.
         :gaussian_filter_radius (int, optional): The radius of the Gaussian filter for computing saliency maps. Defaults to 5.
         :local_average_size (int, optional): The size of the local average filter for computing saliency maps. Defaults to 7.
-        :r (int, optional): The radius of the guided filter for computing weight masks. Defaults to 45.
-        :eps (float, optional): The epsilon parameter of the guided filter for computing weight masks. Defaults to 0.3.
+        :r (int, optional): The radius of the guided filter for computing weight maps. Defaults to 45.
+        :eps (float, optional): The epsilon parameter of the guided filter for computing weight maps. Defaults to 0.3.
         :verbose (bool, optional): Whether to print intermediate results. Defaults to False.
         :savefigs (bool, optional): Whether to save intermediate figures. Defaults to False.
 
@@ -274,7 +274,7 @@ def fuse_images_no_decomposition(
         print("Computing weight maps...")
     W = get_weight_masks_no_decomposition(saliency_maps, imgs, r, eps)
     if verbose or savefigs:
-        show_multi_images(W, "Weight masks", gray=True, scale=[0, 1], savename="WB" if savefigs else None)
+        show_multi_images(W, "Weight maps", gray=True, scale=[0, 1], savename="WB" if savefigs else None)
         print()
 
     # Fuse
