@@ -9,7 +9,7 @@ from ..guided_filter import (
 
 
 image_folder = os.path.join("dataset", "guided_filter_tests")
-imrgb1 = plt.imread(os.path.join(image_folder, "renoir.jpg")) / 255
+imrgb1 = plt.imread(os.path.join(image_folder, "kandinsky.jpg")) / 255
 noisy_imrgb1 = imrgb1 + np.random.normal(0, 0.2, imrgb1.shape)
 imrgb1 = imrgb1[:, :, 0:3]
 

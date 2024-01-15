@@ -14,10 +14,8 @@ from .guided_filter import (
 def get_base_detail_layers(im, average_filter_size=31):
     # Compute base layers
     base = average_filter(im, average_filter_size//2).astype(int)
-
-    # Compute details layers
-    detail = im - base  # Remark: how to interpret negative values?
-
+    # Compute detail layers
+    detail = im - base
     return base, detail
 
 
@@ -32,7 +30,6 @@ def apply_laplacian_filter(im, kernel_size=3, sigma=3, local_average_size=14):
     H = average_filter(
         H, local_average_size//2
     )  # Take local average of the absolute value
-
     return H
 
 
@@ -50,7 +47,6 @@ def get_saliency_map(
     saliency = gaussian_filter(
         H, sigma=gaussian_filter_sigma, radius=gaussian_filter_radius
     )
-
     return saliency
 
 
@@ -274,13 +270,90 @@ def fuse_images_no_decomposition(
         print("Computing weight maps...")
     W = get_weight_masks_no_decomposition(saliency_maps, imgs, r, eps)
     if verbose or savefigs:
-        show_multi_images(W, "Weight maps", gray=True, scale=[0, 1], savename="WB" if savefigs else None)
+        show_multi_images(W, "Filtered weight maps", gray=True, scale=[0, 1], savename="WB" if savefigs else None)
         print()
 
     # Fuse
     if verbose:
         print("Fusing...")
     fused_image = fuse_layers_no_decomposition(np.array(imgs), W)
+    if verbose or savefigs:
+        if verbose:
+            print("Fused image:")
+        plt.close("all")
+        plt.imshow(fused_image, cmap="gray" if len(fused_image.shape) == 2 else None)
+        plt.axis("off")
+        plt.title(f"Fused image")
+        if savefigs:
+            plt.savefig(f"fused.png")
+        else:
+            plt.show()
+
+    return fused_image
+
+
+def get_weight_masks_no_filtering(saliency_maps):
+    P = get_weight_mask_precursors(saliency_maps)
+    return P
+
+
+def fuse_images_no_filtering(
+    imgs,
+    laplacian_kernel_size=3,
+    gaussian_filter_sigma=5,
+    gaussian_filter_radius=5,
+    local_average_size=7,
+    verbose=False,
+    savefigs=False,
+):
+    """
+    Fuse multiple images, wuthout guided filtering.
+
+    Parameters:
+        :imgs (numpy.ndarray): The images to fuse.
+        :laplacian_kernel_size (int, optional): The size of the Laplacian kernel for computing saliency maps. Defaults to 3.
+        :gaussian_filter_sigma (float, optional): The standard deviation of the Gaussian filter for computing saliency maps. Defaults to 5.
+        :gaussian_filter_radius (int, optional): The radius of the Gaussian filter for computing saliency maps. Defaults to 5.
+        :local_average_size (int, optional): The size of the local average filter for computing saliency maps. Defaults to 7.
+        :verbose (bool, optional): Whether to print intermediate results. Defaults to False.
+        :savefigs (bool, optional): Whether to save intermediate figures. Defaults to False.
+
+    Returns:
+        numpy.ndarray: The fused image.
+    """
+    # Enforce that all images are encoded in uint8
+    for img in imgs:
+        assert img.dtype == np.uint8
+
+    # Compute saliency maps
+    if verbose:
+        print("Computing saliency maps...")
+    saliency_maps = []
+    for img in imgs:
+        saliency_maps.append(get_saliency_map(
+            img,
+            laplacian_kernel_size=laplacian_kernel_size,
+            local_average_size=local_average_size,
+            gaussian_filter_sigma=gaussian_filter_sigma,
+            gaussian_filter_radius=gaussian_filter_radius,
+        ))
+    saliency_maps = np.array(saliency_maps)
+    if verbose:
+        show_multi_images(saliency_maps, "Saliency maps", gray=True)
+        print()
+
+    # Compute weight maps
+    if verbose:
+        print("Computing weight maps...")
+    P = get_weight_masks_no_filtering(saliency_maps)
+    if verbose or savefigs:
+        show_multi_images(P, "Weight maps", gray=True, scale=[0, 1], savename="P" if savefigs else None)
+        print()
+
+    # Fuse
+    if verbose:
+        print("Fusing...")
+    fused_image = fuse_layers_no_decomposition(np.array(imgs), P)
     if verbose or savefigs:
         if verbose:
             print("Fused image:")

@@ -1,12 +1,11 @@
 import numpy as np
-import cv2
 
 
 # Numpy implementation
 def average_filter_no_edge(u, r):
     """
-    Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
-    Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
+    Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images. Suitable for grayscale images.
+    Credit for this function goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
 
     Parameters:
         :u (numpy.ndarray): The input image.
@@ -33,8 +32,8 @@ def average_filter_no_edge(u, r):
 
 def average_filter_multichannel_no_edge(u, r):
     """
-    Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images.
-    Credit for this functions goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
+    Average filter on image u with a square (2*r+1)x(2*r+1) window using integral images. Suitable for coloured images.
+    Credit for this function goes to Julie Delon, Lucía Bouza and Joan Alexis Glaunès.
 
     Parameters:
         :u (numpy.ndarray): The input image.
@@ -155,6 +154,7 @@ def guided_filter_with_colored_guide(u, guide, r, eps):
     return np.sum(mean_alpha * guide, axis=-1) + mean_beta
 
 
+# Python implementation, to check previous implementation
 def guided_filter_with_colored_guide_slow(u, guide, r, eps):
     """
     Guided filtering on image u using colored guide, with filter radius r and regularization parameter eps (slow implementation).

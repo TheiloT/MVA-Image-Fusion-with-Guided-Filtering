@@ -3,6 +3,7 @@ from skimage.metrics import structural_similarity as ssim
 from scipy.ndimage import sobel
 from .guided_filter import average_filter
 
+
 def entropy(gray_img):
     """
     Compute entropy value for grayscale image.
@@ -101,40 +102,6 @@ def structural_similarity_metric(img1, img2, fusion, window_size):
     Qy2 = local_weights * ssim_1f + (1 - local_weights) * ssim_2f
     comparaison = (ssim_12 < 0.75)
     Qy = Qy1 * comparaison + Qy2 * (1 - comparaison)
-    return np.mean(Qy)
-
-def structural_similarity_metric_colored(img1, img2, fusion, window_size): #Not working yet
-    #TODO : try with color images
-    ssim_1f = ssim(img1, fusion, win_size=window_size, full=True, channel_axis=2)[1]
-    ssim_2f = ssim(img2, fusion, win_size=window_size, full=True, channel_axis=2)[1]
-    ssim_12 = np.mean(ssim(img1, img2, win_size=window_size, full=True, channel_axis=2)[1], axis=2)
-
-    #Compute variance in each window
-    r = window_size // 2
-    mean_img1 = average_filter(img1, r)
-    corr_img1 = average_filter(img1 * img1, r)
-    var_img1 = corr_img1 - mean_img1 * mean_img1 #This is not the right computation for variance, but I don't know how to deal with (W, H, 3, 3) arrays
-    # corr_img1 = np.zeros((img1.shape[0], img1.shape[1], 3, 3))  # (W, H, 3, 3)
-    # for i in range(3):
-    #     for j in range(3):
-    #         corr_img1[:, :, i, j] = average_filter(img1[:, :, i] * img1[:, :, j], r)
-    # var_img1 = corr_img1 - mean_img1[:,:,None,:] * mean_img1[:,:,:,None]
-
-    mean_img2 = average_filter(img2, r)
-    corr_img2 = average_filter(img2 * img2, r)
-    var_img2 = corr_img2 - mean_img2 * mean_img2 
-    # corr_img2 = np.zeros((img2.shape[0], img2.shape[1], 3, 3))  # (W, H, 3, 3)
-    # for i in range(3):
-    #     for j in range(3):
-    #         corr_img2[:, :, i, j] = average_filter(img2[:, :, i] * img2[:, :, j], r)
-    # var_img2 = corr_img2 - mean_img2[:,:,None,:] * mean_img2[:,:,:,None]
-
-    local_weights = var_img1 / (var_img1 + var_img2 + 1e-5)
-
-    Qy1 = np.maximum(ssim_1f, ssim_2f)
-    Qy2 = local_weights * ssim_1f + (1 - local_weights) * ssim_2f
-    comparaison = (ssim_12 < 0.75)
-    Qy = Qy1 * comparaison[:,:,None] + Qy2 * (1 - comparaison)[:,:,None]
     return np.mean(Qy)
 
 def edge_strength(gray_img):

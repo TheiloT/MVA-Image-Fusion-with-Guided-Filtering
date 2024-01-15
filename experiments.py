@@ -106,8 +106,12 @@ def plot_metric(parameter, values, save=False):
         plt.show()
 
 if __name__ == "__main__":
-    # launch_experiment()
-    plot_metric("r1", [1, 3, 5, 7, 10, 25, 50, 70, 100, 300], save=True)
-    plot_metric("r2", [1, 3, 5, 7, 10, 25, 50, 70, 100, 300], save=True)
-    plot_metric("eps1", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10], save=True)
-    plot_metric("eps2", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10], save=True)
+    # To launch an experiment, you may for example run in the terminal:
+    # python experiments.py --multirun parameter=r1 value=1,3,5,7,10,25,50,70,100,300 image=range(1,11)
+    # Note that launching experiments uses the hydra Python library, see https://hydra.cc/docs/intro/
+    
+    launch_experiment()
+    # plot_metric("r1", [1, 3, 5, 7, 10, 25, 50, 70, 100, 300], save=True)
+    # plot_metric("r2", [1, 3, 5, 7, 10, 25, 50, 70, 100, 300], save=True)
+    # plot_metric("eps1", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10], save=True)
+    # plot_metric("eps2", [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1, 10], save=True)

@@ -23,9 +23,10 @@ def show_images(im1, im2, title1, title2, gray=False):
     axes[1].set_title(f"Image 2: {title2}")
     plt.show()
 
+
 def show_3_images(im1, im2, im3, title1, title2, title3, gray=False):
     """
-    Display two images side by side.
+    Display three images side by side.
 
     Parameters:
         :im1 (numpy.ndarray): The first image.
@@ -36,7 +37,7 @@ def show_3_images(im1, im2, im3, title1, title2, title3, gray=False):
         :title3 (str): The title for the third image.
         :gray (bool, optional): Whether to display the images in grayscale. Defaults to False.
     """
-    _, axes = plt.subplots(1, 3, figsize=(12, 5))
+    _, axes = plt.subplots(1, 3, figsize=(16, 8))
     axes[0].imshow(im1, cmap="gray" if gray else None)
     axes[0].axis("off")
     axes[0].set_title(f"{title1}")
@@ -49,7 +50,7 @@ def show_3_images(im1, im2, im3, title1, title2, title3, gray=False):
     plt.show()
 
 
-def rgb2gray(rgb, use_opencv=False):
+def rgb2gray(rgb):
     """
     Convert an RGB image to grayscale.
 
@@ -60,23 +61,25 @@ def rgb2gray(rgb, use_opencv=False):
     Returns:
         numpy.ndarray: The grayscale image.
     """
-    if use_opencv:
-        return cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY).astype(np.uint8)
-    else:
-        return np.dot(
-            rgb[..., :3], [0.299, 0.587, 0.114]
-        ).astype(np.uint8)  # Chosen to comply with OpenCV, see https://docs.opencv.org/3.4/de/d25/imgproc_color_conversions.html
+    return np.dot(
+        rgb[..., :3], [0.299, 0.587, 0.114]
+    ).astype(np.uint8)  # Chosen to comply with OpenCV, see https://docs.opencv.org/3.4/de/d25/imgproc_color_conversions.html
 
-def zoom_on_detail(img, top_left=[150,150], width=200, height=200):
+
+def zoom_on_detail(img, top_left=[150,150], width=200, height=200, grayscale=False):
     #Zooming on details
     plt.figure(figsize=(6,6))
-    plt.imshow(img[top_left[0]:top_left[0]+height, top_left[1]:top_left[1]+width, :])
-    plt.title("Zoom on detail")
+    if grayscale:
+        plt.imshow(img[top_left[0]:top_left[0]+height, top_left[1]:top_left[1]+width], cmap='gray')
+    else:
+        plt.imshow(img[top_left[0]:top_left[0]+height, top_left[1]:top_left[1]+width, :])
+    plt.title("Zoom on detail", fontsize=16)
     plt.axis('off')
+    
     
 def show_multi_images(images, title, gray=False, scale=[None, None], savename=False):
     """
-    Display multiple images
+    Display multiple images.
 
     Parameters:
         :images (list(numpy.ndarray)): The list of images.
