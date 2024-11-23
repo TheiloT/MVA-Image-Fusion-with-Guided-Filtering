@@ -13,5 +13,5 @@ In addition to the pair ``cathedral1.jpg`` and ``cathedral2.jpg`` and to the pai
 The report for this project is available [here](Report_guided_filtering_project.pdf).
 
 # Contributors
-[@ameliepesnec](https://github.com/ameliepesnec)
-[@TheiloT](https://github.com/TheiloT),
+[@ameliepesnec](https://github.com/ameliepesnec),
+[@TheiloT](https://github.com/TheiloT)
